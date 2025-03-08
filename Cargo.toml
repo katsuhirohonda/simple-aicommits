@@ -1,6 +1,6 @@
 [package]
 name = "simple-aicommits"
-version = "0.1.2"
+version = "0.1.3"
 edition = "2024"
 authors = ["Katsuhiro Honda<freewave3@gmail.com>"]
 description = "A simple CLI tool that generates commit messages from git diffs using Claude AI"
