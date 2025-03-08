@@ -22,24 +22,27 @@ First, ensure you have staged your changes with `git add`.
 export ANTHROPIC_API_KEY="your-api-key"
 
 # Generate a commit message without committing
-simple-aicommits
+aicommits
 
 # Generate a commit message and automatically commit
-simple-aicommits --commit
+aicommits --commit
 ```
 
 ### Options
 
 - `-c, --commit`: Automatically commit changes with the generated message
+- `-a, --api-key <API_KEY>`: Specify an Anthropic API key directly (overrides environment variable)
 - `-h, --help`: Print help information
 - `-V, --version`: Print version information
 
 ## How it Works
 
-simple-aicommits:
+aicommits:
 
 1. Gets the git diff of staged changes
-2. Sends the diff to Claude AI to generate a concise, informative commit message
+2. Sends the diff to Claude AI to generate a structured commit message with:
+   - A concise first line in conventional commits format
+   - Several bullet points explaining the key changes
 3. Optionally commits the changes with the generated message
 
 ## Requirements

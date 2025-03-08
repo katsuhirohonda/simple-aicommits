@@ -83,9 +83,12 @@ async fn generate_commit_message(api_key: &str, diff: &str) -> Result<String> {
 
     // Create the prompt for Claude
     let prompt = format!(
-        "Generate a concise and informative git commit message based on the following diff. \
-        Use the conventional commits format (type: description) where appropriate. \
-        Focus on WHAT changed and WHY, not HOW. Keep it under 300 characters if possible. \
+        "Generate a git commit message based on the following diff. \
+        Use the following format:\n\
+        - First line: A concise summary using conventional commits format (type: description) where appropriate\n\
+        - Leave a blank line after the first line\n\
+        - Then add 2-3 bullet points explaining the key changes in more detail\n\n\
+        Focus on WHAT changed and WHY, not HOW. Keep the first line under 70 characters.\n\
         Return ONLY the commit message without any additional text.\n\n```diff\n{}\n```",
         diff
     );
@@ -94,7 +97,7 @@ async fn generate_commit_message(api_key: &str, diff: &str) -> Result<String> {
     let body = CreateMessageParams::new(RequiredMessageParams {
         model: "claude-3-5-sonnet-20240620".to_string(),
         messages: vec![Message::new_text(Role::User, prompt)],
-        max_tokens: 300,
+        max_tokens: 500,
     })
     .with_temperature(0.7)
     .with_system("You are a helpful assistant specialized in creating concise, meaningful git commit messages.");

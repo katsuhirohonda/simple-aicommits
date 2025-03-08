@@ -7,6 +7,10 @@ description = "A simple CLI tool that generates commit messages from git diffs u
 keywords = ["git", "commit", "ai"]
 license = "MIT"
 
+[[bin]]
+name = "aicommits"
+path = "src/main.rs"
+
 [dependencies]
 anthropic-ai-sdk = "0.1.4"
 tokio = { version = "1.43.0", features = ["full"] }
