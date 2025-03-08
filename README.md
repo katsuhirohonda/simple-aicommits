@@ -1,4 +1,4 @@
-# aicommits
+# simple-aicommits
 
 A simple CLI tool that generates commit messages from git diffs using Claude AI.
 
@@ -6,8 +6,8 @@ A simple CLI tool that generates commit messages from git diffs using Claude AI.
 
 ```bash
 # Clone the repository
-git clone https://github.com/katsuhirohonda/aicommits.git
-cd aicommits
+git clone https://github.com/yourusername/simple-aicommits.git
+cd simple-aicommits
 
 # Build and install
 cargo install --path .
@@ -22,10 +22,10 @@ First, ensure you have staged your changes with `git add`.
 export ANTHROPIC_API_KEY="your-api-key"
 
 # Generate a commit message without committing
-aicommits
+simple-aicommits
 
 # Generate a commit message and automatically commit
-aicommits --commit
+simple-aicommits --commit
 ```
 
 ### Options
@@ -36,7 +36,7 @@ aicommits --commit
 
 ## How it Works
 
-aicommits:
+simple-aicommits:
 
 1. Gets the git diff of staged changes
 2. Sends the diff to Claude AI to generate a concise, informative commit message
@@ -51,4 +51,3 @@ aicommits:
 ## License
 
 MIT
-# simple-aicommits
