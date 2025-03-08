@@ -21,6 +21,9 @@ First, ensure you have staged your changes with `git add`.
 # Set your Anthropic API key
 export ANTHROPIC_API_KEY="your-api-key"
 
+# Optionally set the Claude model to use (defaults to claude-3-5-haiku-20241022)
+export ANTHROPIC_MODEL="claude-3-haiku-20240307"
+
 # Generate a commit message without committing
 aicommits
 
@@ -49,6 +52,11 @@ aicommits:
 - Rust 1.65 or higher
 - Git installed and in your PATH
 - An Anthropic API key
+
+## Environment Variables
+
+- `ANTHROPIC_API_KEY`: Required. Your Anthropic API key.
+- `ANTHROPIC_MODEL`: Optional. The Claude model to use (defaults to "claude-3-5-haiku-20241022").
 
 ## License
 
