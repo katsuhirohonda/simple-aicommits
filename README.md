@@ -6,7 +6,7 @@ A simple CLI tool that generates commit messages from git diffs using Claude AI.
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/simple-aicommits.git
+git clone https://github.com/katsuhirohonda/simple-aicommits.git
 cd simple-aicommits
 
 # Build and install
