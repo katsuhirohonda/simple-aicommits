@@ -31,15 +31,12 @@ async fn main() -> Result<()> {
     // Parse command line arguments
     let args = Args::parse();
 
-    // Get the API key from args or environment
-    let api_key = match args.api_key {
-        Some(key) => key,
-        None => env::var("ANTHROPIC_API_KEY").context("ANTHROPIC_API_KEY environment variable not set")?,
-    };
+    let api_key =
+        std::env::var("ANTHROPIC_API_KEY").expect("ANTHROPIC_API_KEY environment variable not set");
 
     // Get git diff
     let diff = get_git_diff().context("Failed to get git diff")?;
-    
+
     if diff.is_empty() {
         println!("No changes to commit.");
         return Ok(());
@@ -47,7 +44,7 @@ async fn main() -> Result<()> {
 
     // Generate commit message
     let commit_message = generate_commit_message(&api_key, &diff).await?;
-    
+
     println!("\nGenerated commit message:\n{}", commit_message);
 
     // Commit if requested
@@ -81,8 +78,9 @@ fn get_git_diff() -> Result<String> {
 /// Generate a commit message using Claude AI
 async fn generate_commit_message(api_key: &str, diff: &str) -> Result<String> {
     // Initialize the Anthropic client
-    let client = AnthropicClient::new::<MessageError>(api_key.to_string(), "2023-06-01".to_string())
-        .context("Failed to create Anthropic client")?;
+    let client =
+        AnthropicClient::new::<MessageError>(api_key.to_string(), "2023-06-01".to_string())
+            .context("Failed to create Anthropic client")?;
 
     // Create the prompt for Claude
     let prompt = format!(
@@ -107,14 +105,18 @@ async fn generate_commit_message(api_key: &str, diff: &str) -> Result<String> {
     match client.create_message(Some(&body)).await {
         Ok(response) => {
             // Extract the text content from the response
-            let message = response.content.iter().find_map(|block| {
-                if let anthropic_ai_sdk::types::message::ContentBlock::Text { text } = block {
-                    Some(text.clone())
-                } else {
-                    None
-                }
-            }).unwrap_or_else(|| "Failed to extract commit message from response".to_string());
-            
+            let message = response
+                .content
+                .iter()
+                .find_map(|block| {
+                    if let anthropic_ai_sdk::types::message::ContentBlock::Text { text } = block {
+                        Some(text.clone())
+                    } else {
+                        None
+                    }
+                })
+                .unwrap_or_else(|| "Failed to extract commit message from response".to_string());
+
             // Clean up the message (remove quotes, etc.)
             let clean_message = message.trim().trim_matches('"').trim().to_string();
             Ok(clean_message)
