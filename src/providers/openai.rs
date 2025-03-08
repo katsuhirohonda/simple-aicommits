@@ -1,14 +1,9 @@
 use crate::ai_provider::CommitMessageGenerator;
-use crate::prompts::{get_commit_message_template, SYSTEM_PROMPT};
-use anyhow::{Context, Result};
+use crate::prompts::{SYSTEM_PROMPT, get_commit_message_template};
+use anyhow::Result;
 use async_trait::async_trait;
-use openai::{
-    api::Client,
-    types::{
-        ChatCompletionRequestMessage, ChatCompletionRequestMessageArgs, 
-        CreateChatCompletionRequestArgs, Role,
-    },
-};
+use openai_api_rust::chat::*;
+use openai_api_rust::*;
 use tracing::error;
 
 pub struct OpenAIProvider {
@@ -18,7 +13,7 @@ pub struct OpenAIProvider {
 
 impl OpenAIProvider {
     pub fn new(api_key: String, model: Option<String>) -> Self {
-        let model = model.unwrap_or_else(|| "gpt-4o-mini".to_string());
+        let model = model.unwrap_or_else(|| "gpt-4-turbo-preview".to_string());
         Self { api_key, model }
     }
 }
@@ -26,44 +21,47 @@ impl OpenAIProvider {
 #[async_trait]
 impl CommitMessageGenerator for OpenAIProvider {
     async fn generate_commit_message(&self, diff: &str) -> Result<String> {
-        // Initialize the OpenAI client
-        let client = Client::new().with_api_key(&self.api_key);
+        let auth = Auth::new(&self.api_key);
+        let openai = OpenAI::new(auth, "https://api.openai.com/v1/");
 
-        // Get prompts from the centralized prompt manager
-        let user_message = get_commit_message_template(diff);
-
-        // Create chat messages
         let messages = vec![
-            ChatCompletionRequestMessageArgs::default()
-                .role(Role::System)
-                .content(SYSTEM_PROMPT)
-                .build()?,
-            ChatCompletionRequestMessageArgs::default()
-                .role(Role::User)
-                .content(user_message)
-                .build()?,
+            Message {
+                role: Role::System,
+                content: SYSTEM_PROMPT.to_string(),
+            },
+            Message {
+                role: Role::User,
+                content: get_commit_message_template(diff),
+            },
         ];
 
-        // Create chat completion request
-        let request = CreateChatCompletionRequestArgs::default()
-            .model(&self.model)
-            .messages(messages)
-            .temperature(0.7)
-            .max_tokens(500_u16)
-            .build()?;
+        let body = ChatBody {
+            model: self.model.clone(),
+            messages,
+            temperature: Some(0.7),
+            max_tokens: Some(500),
+            n: Some(1),
+            stream: Some(false),
+            stop: None,
+            presence_penalty: None,
+            frequency_penalty: None,
+            logit_bias: None,
+            user: None,
+            top_p: Some(1.0),
+        };
 
-        // Send request to OpenAI
-        match client.chat().create(request).await {
+        match openai.chat_completion_create(&body) {
             Ok(response) => {
                 let message = response
                     .choices
                     .first()
-                    .and_then(|choice| choice.message.content.clone())
-                    .unwrap_or_else(|| "Failed to extract commit message from response".to_string());
+                    .and_then(|choice| choice.message.as_ref())
+                    .map(|msg| msg.content.clone())
+                    .unwrap_or_else(|| {
+                        "Failed to extract commit message from response".to_string()
+                    });
 
-                // Clean up the message
-                let clean_message = message.trim().trim_matches('"').trim().to_string();
-                Ok(clean_message)
+                Ok(message.trim().trim_matches('"').trim().to_string())
             }
             Err(e) => {
                 error!("Error from OpenAI API: {}", e);
