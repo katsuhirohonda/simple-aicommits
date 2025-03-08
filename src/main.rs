@@ -95,7 +95,7 @@ async fn generate_commit_message(api_key: &str, diff: &str) -> Result<String> {
 
     // Create message parameters
     let body = CreateMessageParams::new(RequiredMessageParams {
-        model: "claude-3-5-sonnet-20240620".to_string(),
+        model: "claude-3-5-haiku-20241022".to_string(),
         messages: vec![Message::new_text(Role::User, prompt)],
         max_tokens: 500,
     })
