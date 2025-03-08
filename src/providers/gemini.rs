@@ -23,6 +23,11 @@ impl GeminiProvider {
 #[async_trait]
 impl CommitMessageGenerator for GeminiProvider {
     async fn generate_commit_message(&self, diff: &str) -> Result<String> {
+        // Set API key in environment variable
+        unsafe {
+            std::env::set_var("GOOGLE_API_KEY", &self.api_key);
+        }
+
         // Initialize the Gemini client
         let client = Client::default();
 
