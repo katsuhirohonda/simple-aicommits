@@ -6,6 +6,8 @@ authors = ["Katsuhiro Honda<freewave3@gmail.com>"]
 description = "A simple CLI tool that generates commit messages from git diffs using Claude AI, OpenAI, or Gemini"
 keywords = ["git", "commit", "ai"]
 license = "MIT"
+repository = "https://github.com/katsuhirohonda/simple-aicommits"
+rust-version = "1.85.0"
 
 [[bin]]
 name = "aicommits"
