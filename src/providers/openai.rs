@@ -3,8 +3,11 @@ use crate::prompts::{get_commit_message_template, SYSTEM_PROMPT};
 use anyhow::{Context, Result};
 use async_trait::async_trait;
 use openai::{
-    chat::{ChatCompletion, ChatCompletionMessage, ChatCompletionMessageRole},
-    Client,
+    api::Client,
+    types::{
+        ChatCompletionRequestMessage, ChatCompletionRequestMessageArgs, 
+        CreateChatCompletionRequestArgs, Role,
+    },
 };
 use tracing::error;
 
@@ -24,30 +27,30 @@ impl OpenAIProvider {
 impl CommitMessageGenerator for OpenAIProvider {
     async fn generate_commit_message(&self, diff: &str) -> Result<String> {
         // Initialize the OpenAI client
-        let client = Client::new().with_api_key(self.api_key.clone());
+        let client = Client::new().with_api_key(&self.api_key);
 
         // Get prompts from the centralized prompt manager
         let user_message = get_commit_message_template(diff);
 
+        // Create chat messages
+        let messages = vec![
+            ChatCompletionRequestMessageArgs::default()
+                .role(Role::System)
+                .content(SYSTEM_PROMPT)
+                .build()?,
+            ChatCompletionRequestMessageArgs::default()
+                .role(Role::User)
+                .content(user_message)
+                .build()?,
+        ];
+
         // Create chat completion request
-        let request = ChatCompletion::builder(self.model.clone(), vec![
-            ChatCompletionMessage {
-                role: ChatCompletionMessageRole::System,
-                content: SYSTEM_PROMPT.into(),
-                name: None,
-                function_call: None,
-            },
-            ChatCompletionMessage {
-                role: ChatCompletionMessageRole::User,
-                content: user_message.into(),
-                name: None,
-                function_call: None,
-            },
-        ])
-        .temperature(0.7)
-        .max_tokens(500)
-        .build()
-        .context("Failed to build OpenAI request")?;
+        let request = CreateChatCompletionRequestArgs::default()
+            .model(&self.model)
+            .messages(messages)
+            .temperature(0.7)
+            .max_tokens(500_u16)
+            .build()?;
 
         // Send request to OpenAI
         match client.chat().create(request).await {
