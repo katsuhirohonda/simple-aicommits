@@ -28,6 +28,7 @@ async fn main() -> Result<()> {
 
     let api_key =
         std::env::var("ANTHROPIC_API_KEY").expect("ANTHROPIC_API_KEY environment variable not set");
+    let model = std::env::var("ANTHROPIC_MODEL").unwrap_or("claude-3-5-haiku-20241022".to_string());
 
     // Get git diff
     let diff = get_git_diff().context("Failed to get git diff")?;
@@ -38,7 +39,7 @@ async fn main() -> Result<()> {
     }
 
     // Generate commit message
-    let commit_message = generate_commit_message(&api_key, &diff).await?;
+    let commit_message = generate_commit_message(&api_key, &diff, &model).await?;
 
     println!("\nGenerated commit message:\n{}", commit_message);
 
@@ -71,7 +72,7 @@ fn get_git_diff() -> Result<String> {
 }
 
 /// Generate a commit message using Claude AI
-async fn generate_commit_message(api_key: &str, diff: &str) -> Result<String> {
+async fn generate_commit_message(api_key: &str, diff: &str, model: &str) -> Result<String> {
     // Initialize the Anthropic client
     let client =
         AnthropicClient::new::<MessageError>(api_key.to_string(), "2023-06-01".to_string())
@@ -91,7 +92,7 @@ async fn generate_commit_message(api_key: &str, diff: &str) -> Result<String> {
 
     // Create message parameters
     let body = CreateMessageParams::new(RequiredMessageParams {
-        model: "claude-3-5-haiku-20241022".to_string(),
+        model: model.to_string(),
         messages: vec![Message::new_text(Role::User, prompt)],
         max_tokens: 500,
     })
