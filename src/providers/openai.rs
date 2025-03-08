@@ -1,4 +1,4 @@
-use crate::ai_provider::CommitMessageGenerator;
+use crate::ai_provider::{CommitMessageGenerator, Provider};
 use crate::prompts::{SYSTEM_PROMPT, get_commit_message_template};
 use anyhow::Result;
 use async_trait::async_trait;
@@ -13,7 +13,7 @@ pub struct OpenAIProvider {
 
 impl OpenAIProvider {
     pub fn new(api_key: String, model: Option<String>) -> Self {
-        let model = model.unwrap_or_else(|| "gpt-4-turbo-preview".to_string());
+        let model = model.unwrap_or_else(|| Provider::OpenAI.default_model().to_string());
         Self { api_key, model }
     }
 }

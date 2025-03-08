@@ -1,10 +1,10 @@
-use crate::ai_provider::CommitMessageGenerator;
-use crate::prompts::{get_commit_message_template, SYSTEM_PROMPT};
-use anyhow::{Context, Result};
+use crate::ai_provider::{CommitMessageGenerator, Provider};
+use crate::prompts::{SYSTEM_PROMPT, get_commit_message_template};
 use anthropic_ai_sdk::clients::AnthropicClient;
 use anthropic_ai_sdk::types::message::{
     CreateMessageParams, Message, MessageClient, MessageError, RequiredMessageParams, Role,
 };
+use anyhow::{Context, Result};
 use async_trait::async_trait;
 use tracing::error;
 
@@ -15,7 +15,7 @@ pub struct ClaudeProvider {
 
 impl ClaudeProvider {
     pub fn new(api_key: String, model: Option<String>) -> Self {
-        let model = model.unwrap_or_else(|| "claude-3-5-haiku-20241022".to_string());
+        let model = model.unwrap_or_else(|| Provider::Claude.default_model().to_string());
         Self { api_key, model }
     }
 }
@@ -48,13 +48,16 @@ impl CommitMessageGenerator for ClaudeProvider {
                     .content
                     .iter()
                     .find_map(|block| {
-                        if let anthropic_ai_sdk::types::message::ContentBlock::Text { text } = block {
+                        if let anthropic_ai_sdk::types::message::ContentBlock::Text { text } = block
+                        {
                             Some(text.clone())
                         } else {
                             None
                         }
                     })
-                    .unwrap_or_else(|| "Failed to extract commit message from response".to_string());
+                    .unwrap_or_else(|| {
+                        "Failed to extract commit message from response".to_string()
+                    });
 
                 // Clean up the message (remove quotes, etc.)
                 let clean_message = message.trim().trim_matches('"').trim().to_string();

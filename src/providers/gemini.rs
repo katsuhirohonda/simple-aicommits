@@ -1,4 +1,4 @@
-use crate::ai_provider::CommitMessageGenerator;
+use crate::ai_provider::{CommitMessageGenerator, Provider};
 use crate::prompts::{SYSTEM_PROMPT, get_commit_message_template};
 use anyhow::Result;
 use async_trait::async_trait;
@@ -15,7 +15,7 @@ pub struct GeminiProvider {
 
 impl GeminiProvider {
     pub fn new(api_key: String, model: Option<String>) -> Self {
-        let model = model.unwrap_or_else(|| "gemini-1.5-flash".to_string());
+        let model = model.unwrap_or_else(|| Provider::Gemini.default_model().to_string());
         Self { api_key, model }
     }
 }
