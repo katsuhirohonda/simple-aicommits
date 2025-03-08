@@ -8,7 +8,7 @@ use clap::Parser;
 use providers::{ClaudeProvider, GeminiProvider, OpenAIProvider};
 use std::process::Command;
 use std::str::FromStr;
-use tracing::{error, info};
+use tracing::info;
 
 /// A simple tool that generates commit messages from git diffs using various AI models
 #[derive(Parser, Debug)]
