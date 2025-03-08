@@ -1,19 +1,30 @@
-use anthropic_ai_sdk::clients::AnthropicClient;
-use anthropic_ai_sdk::types::message::{
-    CreateMessageParams, Message, MessageClient, MessageError, RequiredMessageParams, Role,
-};
+mod ai_provider;
+mod prompts;
+mod providers;
+
+use ai_provider::{CommitMessageGenerator, Provider};
 use anyhow::{Context, Result};
 use clap::Parser;
+use providers::{ClaudeProvider, GeminiProvider, OpenAIProvider};
 use std::process::Command;
-use tracing::{error, info};
+use std::str::FromStr;
+use tracing::info;
 
-/// A simple tool that generates commit messages from git diffs using Claude AI
+/// A simple tool that generates commit messages from git diffs using various AI models
 #[derive(Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
     /// Git commit after generating message
     #[arg(short, long)]
     commit: bool,
+
+    /// AI provider to use (claude, openai, gemini)
+    #[arg(short, long, default_value = "claude")]
+    provider: String,
+
+    /// AI model to use (overrides the default for the provider)
+    #[arg(short, long)]
+    model: Option<String>,
 }
 
 #[tokio::main]
@@ -26,9 +37,9 @@ async fn main() -> Result<()> {
     // Parse command line arguments
     let args = Args::parse();
 
-    let api_key =
-        std::env::var("ANTHROPIC_API_KEY").expect("ANTHROPIC_API_KEY environment variable not set");
-    let model = std::env::var("ANTHROPIC_MODEL").unwrap_or("claude-3-5-haiku-20241022".to_string());
+    // Parse the provider
+    let provider = Provider::from_str(&args.provider)
+        .context(format!("Invalid provider: {}", args.provider))?;
 
     // Get git diff
     let diff = get_git_diff().context("Failed to get git diff")?;
@@ -38,8 +49,8 @@ async fn main() -> Result<()> {
         return Ok(());
     }
 
-    // Generate commit message
-    let commit_message = generate_commit_message(&api_key, &diff, &model).await?;
+    // Generate commit message based on the selected provider
+    let commit_message = generate_commit_message(provider, &diff, args.model).await?;
 
     println!("\nGenerated commit message:\n{}", commit_message);
 
@@ -71,60 +82,39 @@ fn get_git_diff() -> Result<String> {
     Ok(diff)
 }
 
-/// Generate a commit message using Claude AI
-async fn generate_commit_message(api_key: &str, diff: &str, model: &str) -> Result<String> {
-    // Initialize the Anthropic client
-    let client =
-        AnthropicClient::new::<MessageError>(api_key.to_string(), "2023-06-01".to_string())
-            .context("Failed to create Anthropic client")?;
+/// Generate a commit message using the selected AI provider
+async fn generate_commit_message(
+    provider: Provider,
+    diff: &str,
+    model_override: Option<String>,
+) -> Result<String> {
+    info!("Using provider: {}", provider);
 
-    // Create the prompt for Claude
-    let prompt = format!(
-        "Generate a git commit message based on the following diff. \
-        Use the following format:\n\
-        - First line: A concise summary using conventional commits format (type: description) where appropriate\n\
-        - Leave a blank line after the first line\n\
-        - Then add 2-3 bullet points explaining the key changes in more detail\n\n\
-        Focus on WHAT changed and WHY, not HOW. Keep the first line under 70 characters.\n\
-        Return ONLY the commit message without any additional text.\n\n```diff\n{}\n```",
-        diff
-    );
-
-    // Create message parameters
-    let body = CreateMessageParams::new(RequiredMessageParams {
-        model: model.to_string(),
-        messages: vec![Message::new_text(Role::User, prompt)],
-        max_tokens: 500,
-    })
-    .with_temperature(0.7)
-    .with_system("You are a helpful assistant specialized in creating concise, meaningful git commit messages.");
-
-    // Send request to Claude
-    info!("Sending request to Claude...");
-    match client.create_message(Some(&body)).await {
-        Ok(response) => {
-            // Extract the text content from the response
-            let message = response
-                .content
-                .iter()
-                .find_map(|block| {
-                    if let anthropic_ai_sdk::types::message::ContentBlock::Text { text } = block {
-                        Some(text.clone())
-                    } else {
-                        None
-                    }
-                })
-                .unwrap_or_else(|| "Failed to extract commit message from response".to_string());
-
-            // Clean up the message (remove quotes, etc.)
-            let clean_message = message.trim().trim_matches('"').trim().to_string();
-            Ok(clean_message)
+    // Create the appropriate provider based on the selection
+    let generator: Box<dyn CommitMessageGenerator> = match provider {
+        Provider::Claude => {
+            let api_key = std::env::var("ANTHROPIC_API_KEY")
+                .context("ANTHROPIC_API_KEY environment variable not set")?;
+            let model = model_override.or_else(|| std::env::var("ANTHROPIC_MODEL").ok());
+            Box::new(ClaudeProvider::new(api_key, model))
         }
-        Err(e) => {
-            error!("Error from Claude API: {}", e);
-            Err(anyhow::anyhow!("Failed to generate commit message: {}", e))
+        Provider::OpenAI => {
+            let api_key = std::env::var("OPENAI_API_KEY")
+                .context("OPENAI_API_KEY environment variable not set")?;
+            let model = model_override.or_else(|| std::env::var("OPENAI_MODEL").ok());
+            Box::new(OpenAIProvider::new(api_key, model))
         }
-    }
+        Provider::Gemini => {
+            let api_key = std::env::var("GEMINI_API_KEY")
+                .context("GEMINI_API_KEY environment variable not set")?;
+            let model = model_override.or_else(|| std::env::var("GEMINI_MODEL").ok());
+            Box::new(GeminiProvider::new(api_key, model))
+        }
+    };
+
+    // Generate the commit message
+    info!("Generating commit message...");
+    generator.generate_commit_message(diff).await
 }
 
 /// Commit changes with the generated message
