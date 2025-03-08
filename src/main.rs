@@ -4,7 +4,6 @@ use anthropic_ai_sdk::types::message::{
 };
 use anyhow::{Context, Result};
 use clap::Parser;
-use std::env;
 use std::process::Command;
 use tracing::{error, info};
 
@@ -86,7 +85,7 @@ async fn generate_commit_message(api_key: &str, diff: &str) -> Result<String> {
     let prompt = format!(
         "Generate a concise and informative git commit message based on the following diff. \
         Use the conventional commits format (type: description) where appropriate. \
-        Focus on WHAT changed and WHY, not HOW. Keep it under 50-70 characters if possible. \
+        Focus on WHAT changed and WHY, not HOW. Keep it under 300 characters if possible. \
         Return ONLY the commit message without any additional text.\n\n```diff\n{}\n```",
         diff
     );
