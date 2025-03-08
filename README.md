@@ -31,7 +31,6 @@ aicommits --commit
 ### Options
 
 - `-c, --commit`: Automatically commit changes with the generated message
-- `-a, --api-key <API_KEY>`: Specify an Anthropic API key directly (overrides environment variable)
 - `-h, --help`: Print help information
 - `-V, --version`: Print version information
 
