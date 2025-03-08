@@ -14,10 +14,6 @@ struct Args {
     /// Git commit after generating message
     #[arg(short, long)]
     commit: bool,
-
-    /// API key for Claude (overrides ANTHROPIC_API_KEY env var)
-    #[arg(short, long)]
-    api_key: Option<String>,
 }
 
 #[tokio::main]
